@@ -4,3 +4,9 @@ https://circuitjournal.com/50kg-load-cells-with-HX711#1x50
 3D Printable Load Cell Mount:  https://www.thingiverse.com/thing:2624188
 HX711_ADC Arduino C++ library: https://github.com/olkal/HX711_ADC
 
+
+
+Important note: "Measure the resistance of the load cell before connecting them.
+The colors with the highest resistance connect to E+ and E- (excitation voltage).
+It is NOT always red and black.
+If the half bridge is done right, there should be less than 10mV between A+ and A- without weight."
