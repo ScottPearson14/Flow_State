@@ -1,0 +1,8 @@
+{
+  "name": "Flow State - Smart Hydration",
+  "description": "Companion app for the Smart Universal Hydration Tracker. Monitor real-time intake, set goals, and track historical trends using weight-based sensing technology.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
