@@ -1,6 +1,36 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Production / Build outputs
 dist/
+build/
+
+# Capacitor specific
+# We ignore the automated pods and build artifacts to avoid path conflicts
 ios/App/Pods/
 ios/App/build/
+ios/App/Frameworks/
+android/app/build/
+android/.gradle/
+
+# Local configuration and secrets
 .env
+.env.local
+.env.*.local
+
+# IDE and System files
 .DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Xcode local user data (Crucial to avoid path errors)
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
