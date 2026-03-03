@@ -1,0 +1,8 @@
+Goals:
+  1. Connect with iOS device through bluetooth and send weight sensor data
+      There is basic code to do this in "WeightBLESender.ino"
+  2. Work with iOS app for "calibration":
+      Should measure weight of bottle when full, then when empty -> use for reference in analyzing measurements.
+  3. During normal operation, measure & send data when appropriate
+      Should use gryoscope data to recognize when bottle is moved (and there is potential for drinking), and
+      take/send measurements based on movement and time between measurements.
