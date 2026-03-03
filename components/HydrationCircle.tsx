@@ -58,14 +58,14 @@ export const HydrationCircle: React.FC<Props> = ({ current, goal }) => {
       <div className="mt-8 grid grid-cols-3 w-full">
         <div className="text-center">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Current</p>
-          <p className="text-xl font-bold text-blue-600">{(current / 1000).toFixed(1)}<span className="text-xs ml-0.5">L</span></p>
+          <p className="text-xl font-bold text-blue-600">{current.toFixed(1)}<span className="text-xs ml-0.5">oz</span></p>
         </div>
         <div className="flex items-center justify-center">
            <div className="w-[1px] h-8 bg-slate-100"></div>
         </div>
         <div className="text-center">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Daily Goal</p>
-          <p className="text-xl font-bold text-slate-700">{(goal / 1000).toFixed(1)}<span className="text-xs ml-0.5">L</span></p>
+          <p className="text-xl font-bold text-slate-700">{goal.toFixed(1)}<span className="text-xs ml-0.5">oz</span></p>
         </div>
       </div>
     </div>

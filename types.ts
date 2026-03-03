@@ -1,16 +1,18 @@
 
 export interface HydrationLog {
   id: string;
-  amount: number; // in ml
-  type: 'water' | 'coffee' | 'soda' | 'other';
+  amount: number; // in fl oz
+  type: string; // beverage type/name
+  emoji?: string; // beverage emoji
   timestamp: Date;
   caffeine?: number; // in mg
+  alcohol?: number; // ABV percentage
   sugar?: number; // in g
 }
 
 export interface UserStats {
-  dailyGoal: number; // in ml
-  currentIntake: number; // in ml
+  dailyGoal: number; // in fl oz
+  currentIntake: number; // in fl oz
   streak: number;
 }
 
@@ -18,4 +20,14 @@ export interface DeviceStatus {
   connected: boolean;
   batteryLevel: number;
   lastSync: Date | null;
+}
+
+export interface Favorite {
+  id: string;
+  icon: string;
+  label: string;
+  oz: number;
+  type: string;
+  caffeine?: number;
+  alcohol?: number;
 }

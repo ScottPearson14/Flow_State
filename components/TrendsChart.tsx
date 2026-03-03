@@ -2,17 +2,16 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const data = [
-  { day: 'Mon', amount: 2100 },
-  { day: 'Tue', amount: 1800 },
-  { day: 'Wed', amount: 2400 },
-  { day: 'Thu', amount: 2200 },
-  { day: 'Fri', amount: 1500 },
-  { day: 'Sat', amount: 2600 },
-  { day: 'Sun', amount: 2000 },
-];
+interface DailyData {
+  day: string;
+  amount: number;
+}
 
-export const TrendsChart: React.FC = () => {
+interface TrendsChartProps {
+  data: DailyData[];
+}
+
+export const TrendsChart: React.FC<TrendsChartProps> = ({ data }) => {
   return (
     <div className="bg-white p-6 rounded-3xl shadow-sm mt-6">
       <div className="flex justify-between items-center mb-6">
@@ -36,7 +35,7 @@ export const TrendsChart: React.FC = () => {
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={entry.amount >= 2000 ? '#3b82f6' : '#cbd5e1'} 
+                  fill={entry.amount >= 80 ? '#3b82f6' : '#cbd5e1'} 
                 />
               ))}
             </Bar>
