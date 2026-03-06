@@ -13,3 +13,10 @@ Important notes about connection:
 3D printed load cell housing that works well: https://www.thingiverse.com/thing:5448276
   Note: screw holes do not line up - current prototype just uses back hole. Thingiverse files include cad files,
         so could potentially modify file to fit our load cell for our final device
+
+
+Specific Components Ordered:
+Arduino: 
+  https://store-usa.arduino.cc/products/nano-33-ble-sense-rev2
+Load Cells & HX711 Amp's: 
+  https://www.amazon.com/Wishiot-Precision-Miniature-Electronic-Portable/dp/B0C3QH7V8M/ref=rtpb_d_sccl_2/141-8362101-9918524?pd_rd_w=AvDaL&content-id=amzn1.sym.30b3778e-62f7-4bd7-834e-fd1439dc2eb8&pf_rd_p=30b3778e-62f7-4bd7-834e-fd1439dc2eb8&pf_rd_r=A81E2CP5C3E3P78EXEHH&pd_rd_wg=b5Ltc&pd_rd_r=1a62aee1-8446-4aff-95a2-a0a1dacff040&pd_rd_i=B0C3QH7V8M&th=1
