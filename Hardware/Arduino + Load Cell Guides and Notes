@@ -1,0 +1,15 @@
+Basic guide for 50kg load cells: https://circuitjournal.com/50kg-load-cells-with-HX711#1x50
+Basic guides for 5kg bar load cell: https://www.instructables.com/How-to-Interface-With-5kg-Balance-Module-or-Load-C/
+                               and: https://www.instructables.com/Arduino-Scale-With-5kg-Load-Cell-and-HX711-Amplifi/
+HX711_ADC Arduino C++ library: https://github.com/olkal/HX711_ADC
+
+Important notes about connection:
+1. Solder load cell wires DIRECTLY to HX711 Amplifier
+2. Twist load cell wires to reduce noise
+3. Load cell needs to be screwed in very tight and firm, with space in its casing/platforms to allow for deformation
+4. Solder wires directly to HX711's Vcc, GND, and output connections, with wires plugged directly into Arduino's (D4 and D5) pins.
+
+
+3D printed load cell housing that works well: https://www.thingiverse.com/thing:5448276
+  Note: screw holes do not line up - current prototype just uses back hole. Thingiverse files include cad files,
+        so could potentially modify file to fit our load cell for our final device
