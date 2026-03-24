@@ -1,103 +1,68 @@
-/*
- * Flow State - Smart Hydration
- * Arduino Nano 33 BLE + HX711 Load Cell
- */
-
-#include <HX711_ADC.h>
 #include <ArduinoBLE.h>
 
-// --- Hardware Pins ---
-const int HX711_dout = 4; 
-const int HX711_sck = 5; 
-
-// --- BLE UUIDs (Standard Weight Scale) ---
+// ---------------------------------------------------------------------------
+// BLE Service & Characteristic
+// ---------------------------------------------------------------------------
 BLEService weightService("181D");
+// Standard 4-byte float: weight in kg
 BLEFloatCharacteristic weightCharacteristic("2A9D", BLERead | BLENotify);
 
-// --- Global Objects ---
-HX711_ADC LoadCell(HX711_dout, HX711_sck);
-unsigned long lastBleUpdate = 0;
-const long bleInterval = 500; // Send weight every 500ms
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+// Changed to 30000ms (30 seconds)
+const unsigned long SEND_INTERVAL_MS = 30000; 
+
+// ---------------------------------------------------------------------------
+// Simulation Logic
+// ---------------------------------------------------------------------------
+float readWeight() {
+  // Returns 0.2835 kg, which is exactly 10 oz
+  return 0.2835f; 
+}
 
 void setup() {
-  Serial.begin(57600);
-  // Nano 33 BLE needs a moment for Serial
+  Serial.begin(9600);
   while (!Serial); 
 
-  Serial.println("Initializing Flow State Hydration Tracker...");
-
-  // 1. Initialize HX711
-  LoadCell.begin();
-  unsigned long stabilizingtime = 2000; 
-  boolean _tare = true; 
-  LoadCell.start(stabilizingtime, _tare);
-
-  if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
-    Serial.println("Error: Check HX711 wiring!");
-    while (1);
-  }
-
-  // NOTE: On Nano 33 BLE, we can't use EEPROM. 
-  // Once you find your cal factor using the 'r' command, 
-  // hardcode it here: LoadCell.setCalFactor(YOUR_VALUE_HERE);
-  LoadCell.setCalFactor(1.0); 
-
-  // 2. Initialize BLE
   if (!BLE.begin()) {
-    Serial.println("Failed to start BLE!");
-    while (1);
+    Serial.println("BLE failed!");
+    while (true);
   }
 
   BLE.setLocalName("WeightScale");
   BLE.setAdvertisedService(weightService);
   weightService.addCharacteristic(weightCharacteristic);
   BLE.addService(weightService);
-  weightCharacteristic.writeValue(0.0);
-  BLE.advertise();
+  weightCharacteristic.writeValue(0.0f);
 
-  Serial.println("Setup Complete. Advertising as 'WeightScale'...");
+  BLE.advertise();
+  Serial.println("Advertising... sending 10oz (0.2835kg) every 30s once connected.");
 }
 
 void loop() {
-  // Update weight data continuously
-  static boolean newDataReady = 0;
-  if (LoadCell.update()) newDataReady = true;
-
-  // Handle BLE Connection
   BLEDevice central = BLE.central();
+
   if (central) {
+    Serial.print("Connected to: ");
+    Serial.println(central.address());
+
+    unsigned long lastSent = 0;
+
     while (central.connected()) {
-      // 1. Keep the weight sensor updating
-      if (LoadCell.update()) newDataReady = true;
+      unsigned long now = millis();
 
-      // 2. Send data to iOS every 500ms
-      if (newDataReady && (millis() - lastBleUpdate > bleInterval)) {
-        float weight = LoadCell.getData(); // Weight in kg
+      if (now - lastSent >= SEND_INTERVAL_MS) {
+        lastSent = now;
+
+        float weight = readWeight(); 
         weightCharacteristic.writeValue(weight);
-        
-        Serial.print("Weight sent: ");
-        Serial.print(weight);
+
+        Serial.print("Sent simulated 10oz: ");
+        Serial.print(weight, 4);
         Serial.println(" kg");
-
-        newDataReady = false;
-        lastBleUpdate = millis();
       }
-
-      // 3. Handle Serial Commands (Tare/Calibrate)
-      handleSerialCommands();
     }
-  }
-}
-
-void handleSerialCommands() {
-  if (Serial.available() > 0) {
-    char inByte = Serial.read();
-    if (inByte == 't') {
-      LoadCell.tareNoDelay();
-      Serial.println("Taring...");
-    }
-  }
-  if (LoadCell.getTareStatus()) {
-    Serial.println("Tare complete");
+    Serial.println("Disconnected.");
   }
 }
