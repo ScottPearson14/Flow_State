@@ -1,3 +1,5 @@
+export const SERVICE_UUID = '0000181d-0000-1000-8000-00805f9b34fb';
+export const CHARACTERISTIC_UUID = '00002a9d-0000-1000-8000-00805f9b34fb';
 
 export interface HydrationLog {
   id: string;
@@ -31,3 +33,4 @@ export interface Favorite {
   caffeine?: number;
   alcohol?: number;
 }
+

@@ -1,9 +1,19 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
+// Import the Bluetooth plugin
+import { BleClient } from '@capacitor-community/bluetooth-le'; 
 import { HydrationCircle } from './components/HydrationCircle';
 import { TrendsChart } from './components/TrendsChart';
 import { RecentLog } from './components/RecentLog';
-import { HydrationLog, UserStats, DeviceStatus, Favorite } from './types';
+import { 
+  HydrationLog, 
+  UserStats, 
+  DeviceStatus, 
+  Favorite, 
+  SERVICE_UUID, 
+  CHARACTERISTIC_UUID 
+} from './types';
+
 
 const App: React.FC = () => {
   // Initialize from localStorage or use defaults
@@ -25,9 +35,13 @@ const App: React.FC = () => {
     return [];
   });
   
-  const [device, setDevice] = useState<DeviceStatus>({ connected: true, batteryLevel: 84, lastSync: new Date() });
+
+
+  const [device, setDevice] = useState<DeviceStatus>({ connected: false, batteryLevel: 84, lastSync: new Date() });
   const [activeTab, setActiveTab] = useState<'home' | 'stats' | 'profile'>('home');
   const [debugDayOffset, setDebugDayOffset] = useState(0);
+    // FIX: Added the missing isScanning state
+  const [isScanning, setIsScanning] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('80');
   const [favorites, setFavorites] = useState<Favorite[]>(() => {
@@ -48,6 +62,57 @@ const App: React.FC = () => {
   const [newFavContentType, setNewFavContentType] = useState<'none' | 'caffeine' | 'alcohol'>('none');
   const [newFavContentValue, setNewFavContentValue] = useState('');
 
+// --- Bluetooth Connection Logic ---
+const connectToNano = async () => {
+  try {
+    setIsScanning(true);
+    await BleClient.stopLEScan().catch(() => {}); // clear any stuck scan
+    await BleClient.initialize();
+
+const deviceFound = await BleClient.requestDevice({
+  services: [SERVICE_UUID],
+  // remove name filter entirely
+});
+
+    await BleClient.connect(deviceFound.deviceId, (id) => {
+      setDevice(prev => ({ ...prev, connected: false }));
+      console.log(`Scale ${id} disconnected`);
+    });
+
+    setDevice(prev => ({ ...prev, connected: true, lastSync: new Date() }));
+
+await BleClient.startNotifications(
+  deviceFound.deviceId,
+  SERVICE_UUID,
+  CHARACTERISTIC_UUID,
+  (value) => {
+    const weightKg = value.getFloat32(0, true);
+    const amountOz = Math.round(weightKg * 35.274);
+
+    if (amountOz > 0) {
+      const newLog: HydrationLog = {
+        id: Math.random().toString(36).substr(2, 9),
+        amount: amountOz,
+        type: 'water',
+        emoji: '💧',
+        timestamp: new Date(),
+        caffeine: 0,
+        alcohol: 0
+      };
+
+      setLogs(prev => [newLog, ...prev]);
+      setStats(prev => ({ ...prev, currentIntake: prev.currentIntake + amountOz }));
+      setDevice(prev => ({ ...prev, lastSync: new Date() }));
+    }
+  }
+);
+  } catch (error: any) {
+    alert("BLE Error: " + (error?.message || error?.code || JSON.stringify(error)));
+  } finally {
+    setIsScanning(false); // always resets no matter what
+  }
+};
+
   // Save stats to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('flowstate_stats', JSON.stringify(stats));
@@ -64,27 +129,36 @@ const App: React.FC = () => {
   }, [favorites]);
 
   // Check for daily reset (reset currentIntake at midnight)
-  useEffect(() => {
-    const checkDailyReset = () => {
-      const lastResetDate = localStorage.getItem('flowstate_lastResetDate');
-      const today = new Date().toDateString();
-      
-      if (lastResetDate !== today) {
-        // It's a new day, reset currentIntake
-        setStats(prev => ({
-          ...prev,
-          currentIntake: 0
-        }));
-        localStorage.setItem('flowstate_lastResetDate', today);
-      }
-    };
-
-    checkDailyReset();
+// Real midnight reset
+useEffect(() => {
+  const checkDailyReset = () => {
+    const lastResetDate = localStorage.getItem('flowstate_lastResetDate');
+    const today = new Date().toDateString();
     
-    // Check every minute for day change
-    const interval = setInterval(checkDailyReset, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    if (lastResetDate !== today) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      setLogs(prev => prev.filter(log => new Date(log.timestamp) >= todayStart));
+      setStats(prev => ({ ...prev, currentIntake: 0 }));
+      localStorage.setItem('flowstate_lastResetDate', today);
+    }
+  };
+
+  checkDailyReset();
+  const interval = setInterval(checkDailyReset, 60000);
+  return () => clearInterval(interval);
+}, []);
+
+// Debug day advance reset
+useEffect(() => {
+  if (debugDayOffset > 0) {
+    const offsetDay = new Date();
+    offsetDay.setDate(offsetDay.getDate() + debugDayOffset);
+    offsetDay.setHours(0, 0, 0, 0);
+    setLogs(prev => prev.filter(log => new Date(log.timestamp) >= offsetDay));
+    setStats(prev => ({ ...prev, currentIntake: 0 }));
+  }
+}, [debugDayOffset]);
 
   const logIntake = (amount: number, type: string, emoji?: string, caffeine = 0, alcohol = 0) => {
     // Create timestamp with debug day offset applied
@@ -611,8 +685,8 @@ const App: React.FC = () => {
                   <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100">
                     <div className="p-4 border-b border-slate-50 flex justify-between items-center">
                       <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                        <span className="font-semibold text-slate-700">Status</span>
+                        <div className={`w-2 h-2 rounded-full mr-2 ${device.connected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-300'}`}></div>
+                        <span className="text-slate-400 text-sm font-bold">{device.connected ? 'Live' : 'Offline'}</span>
                       </div>
                       <span className="text-slate-400 text-sm font-bold">Live</span>
                     </div>
@@ -621,9 +695,19 @@ const App: React.FC = () => {
                       <span className="text-slate-600 font-bold">{device.batteryLevel}%</span>
                     </div>
                     <div className="p-4 flex justify-between items-center">
-                      <span className="font-semibold text-slate-700">Calibration</span>
-                      <button className="text-blue-600 text-xs font-bold uppercase bg-blue-50 px-3 py-1.5 rounded-lg">Run Now</button>
-                    </div>
+  <span className="font-semibold text-slate-700">Bluetooth Link</span>
+  <button
+    onClick={connectToNano}
+    disabled={device.connected || isScanning}
+    className={`text-xs font-bold uppercase px-3 py-1.5 rounded-lg transition-colors ${
+      device.connected
+        ? 'bg-green-50 text-green-600'
+        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+    }`}
+  >
+    {isScanning ? 'Scanning...' : device.connected ? 'Connected' : 'Connect Device'}
+  </button>
+</div>
                   </div>
                 </section>
              </div>
