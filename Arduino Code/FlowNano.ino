@@ -116,20 +116,23 @@ void processSerialData() {
     String msg = Serial1.readStringUntil('\n');
     msg.trim();
 
-    if (isValidNumber(msg)) {
-      // Input is in ounces - convert to kg for BLE
-      float ozValue = msg.toFloat();
-      currentWeight = ozValue / 35.274;
-      newWeightAvailable = true;
+    // Only process lines tagged with "W:" prefix, ignore all other debug messages
+    if (msg.startsWith("W:")) {
+      String valueStr = msg.substring(2);
+      if (isValidNumber(valueStr)) {
+        float ozValue = valueStr.toFloat();
+        currentWeight = ozValue / 35.274;
+        newWeightAvailable = true;
 
-      Serial.print("Received: ");
-      Serial.print(ozValue, 1);
-      Serial.print(" oz (");
-      Serial.print(currentWeight, 4);
-      Serial.println(" kg)");
-    } else {
-      Serial.print("Invalid: ");
-      Serial.println(msg);
+        Serial.print("Received: ");
+        Serial.print(ozValue, 1);
+        Serial.print(" oz (");
+        Serial.print(currentWeight, 4);
+        Serial.println(" kg)");
+      } else {
+        Serial.print("Invalid value: ");
+        Serial.println(valueStr);
+      }
     }
   }
 }

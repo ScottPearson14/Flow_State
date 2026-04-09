@@ -84,7 +84,8 @@ void loop() {
             Serial.print("Sending to FlowNano: ");
             Serial.print(val, 1);
             Serial.println(" oz");
-            nanoSerial.println(inputBuffer);
+            // Tagged format so FlowNano can filter from debug messages
+            Serial.println("W:" + inputBuffer);
           } else {
             Serial.println("Invalid input. Enter a number (oz) or 't' to tare.");
           }
