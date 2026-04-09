@@ -60,6 +60,7 @@ void loop() {
     Serial.println(central.address());
 
     unsigned long lastSent = 0;
+    bool baselineInitialized = false; // Track if we've set the baseline for this connection
 
     // While the app is connected
     while (central.connected()) {
@@ -69,34 +70,36 @@ void loop() {
 
       unsigned long now = millis();
 
-      // Logic to check if weight has changed and stayed stable
-      // Only send updates when weight DECREASES (drink detected), not when refilling
-      if (lastStableWeight == 0.0) {
-        // First weight received - just establish baseline
+      // Initialize baseline only once per connection
+      if (!baselineInitialized && currentWeight > 0.0) {
         lastStableWeight = currentWeight;
+        baselineInitialized = true;
         stabilityTimer = now;
         Serial.print("Initial weight baseline set to: ");
         Serial.print(currentWeight, 4);
         Serial.println(" kg");
-      } else if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
-        // Weight decreased - this is a drink!
-        if (now - stabilityTimer > 30000) { // 30 second settle time
+      } else if (baselineInitialized) {
+        // Only do drink/refill detection after baseline is set
+        if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
+          // Weight decreased - this is a drink!
+          if (now - stabilityTimer > 30000) { // 30 second settle time
+            lastStableWeight = currentWeight;
+            weightCharacteristic.writeValue(currentWeight);
+            Serial.print("Drink detected! Weight decreased to: ");
+            Serial.print(currentWeight, 4);
+            Serial.println(" kg");
+          }
+        } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
+          // Weight increased - this is a refill, just update reference without sending to app
           lastStableWeight = currentWeight;
-          weightCharacteristic.writeValue(currentWeight);
-          Serial.print("Drink detected! Weight decreased to: ");
+          stabilityTimer = now;
+          Serial.print("Refill detected! Weight increased to: ");
           Serial.print(currentWeight, 4);
           Serial.println(" kg");
+        } else {
+          // Reset timer if weight is currently moving/unstable
+          stabilityTimer = now;
         }
-      } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
-        // Weight increased - this is a refill, just update reference without sending to app
-        lastStableWeight = currentWeight;
-        stabilityTimer = now;
-        Serial.print("Refill detected! Weight increased to: ");
-        Serial.print(currentWeight, 4);
-        Serial.println(" kg");
-      } else {
-        // Reset timer if weight is currently moving/unstable
-        stabilityTimer = now;
       }
     }
     Serial.println("Disconnected.");
