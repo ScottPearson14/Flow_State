@@ -45,6 +45,7 @@ void setup() {
 }
 
 void loop() {
+  /*
   static boolean newDataReady = 0;
   
   // Set to 2000 to print every 2 seconds
@@ -64,7 +65,7 @@ void loop() {
       t = millis();
     }
   }
-
+*/
   
   // receive command from serial terminal to tare the scale
   if (Serial.available() > 0) {
