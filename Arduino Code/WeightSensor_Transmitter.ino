@@ -67,39 +67,17 @@ void loop() {
   }
 */
   
-  // receive command from serial terminal to tare the scale
+  // receive command from serial terminal
   if (Serial.available() > 0) {
-    char inByte = Serial.read();
-    if (inByte == 't') {
+    // Read the entire line at once
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    
+    if (input == "t") {
       LoadCell.tareNoDelay(); //tare
-      Serial.println("Tare initiated...");
-    }
-    // Check if user is typing a decimal number (weight value for testing)
-    else if (isDigit(inByte) || inByte == '.') {
-      // Build complete number string
-      String weightStr = "";
-      weightStr += inByte;
-      
-      // Read remaining digits/decimal points until newline or non-numeric
-      while (Serial.available() > 0) {
-        char nextChar = Serial.peek();
-        if (isDigit(nextChar) || nextChar == '.') {
-          weightStr += Serial.read();
-        } else if (nextChar == '\n' || nextChar == '\r') {
-          Serial.read(); // consume the newline
-          break;
-        } else {
-          Serial.read(); // consume unwanted character
-          break;
-        }
-      }
-      
-      // SEND ONLY THE WEIGHT TO nanoSerial - NO DEBUG
-      nanoSerial.println(weightStr);
-      
-      // Debug output ONLY to USB Serial
-      Serial.print("Test input sent: ");
-      Serial.println(weightStr);
+    } else if (input.length() > 0) {
+      // Send the weight number to FlowNano
+      nanoSerial.println(input);
     }
   }
 
