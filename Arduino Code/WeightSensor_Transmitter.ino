@@ -17,6 +17,7 @@ unsigned long t = 0;
 
 void setup() {
   Serial.begin(9600); delay(10);
+  Serial1.begin(9600); // Initialize Serial1 to send to FlowNano
   Serial.println();
   Serial.println("Starting...");
 
@@ -52,6 +53,8 @@ void loop() {
     if (millis() > t + serialPrintInterval) {
       float weight = LoadCell.getData();
       Serial.println(weight);
+      // Optionally send real sensor data to FlowNano
+      // Serial1.println(weight);
       newDataReady = 0;
       t = millis();
     }
@@ -60,7 +63,35 @@ void loop() {
   // receive command from serial terminal to tare the scale
   if (Serial.available() > 0) {
     char inByte = Serial.read();
-    if (inByte == 't') LoadCell.tareNoDelay(); //tare
+    if (inByte == 't') {
+      LoadCell.tareNoDelay(); //tare
+      Serial.println("Tare initiated...");
+    }
+    // Check if user is typing a decimal number (weight value for testing)
+    else if (isDigit(inByte) || inByte == '.') {
+      // Build the number string
+      String weightStr = "";
+      weightStr += inByte;
+      
+      // Read remaining digits/decimal points until newline or non-numeric
+      while (Serial.available() > 0) {
+        char nextChar = Serial.peek();
+        if (isDigit(nextChar) || nextChar == '.') {
+          weightStr += Serial.read();
+        } else if (nextChar == '\n' || nextChar == '\r') {
+          Serial.read(); // consume the newline
+          break;
+        } else {
+          Serial.read(); // consume unwanted character
+          break;
+        }
+      }
+      
+      // Send the test weight to FlowNano via Serial1
+      Serial1.println(weightStr);
+      Serial.print("Test weight sent to FlowNano: ");
+      Serial.println(weightStr);
+    }
   }
 
   // check if last tare operation is complete

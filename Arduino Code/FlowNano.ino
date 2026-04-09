@@ -16,6 +16,10 @@ const unsigned long SEND_INTERVAL_MS = 2000;
 
 // Global variable to hold the most recent valid weight from the 5V board
 float currentWeight = 0.0;
+// Add these variables to your FlowNano.ino
+float lastStableWeight = 0.0;
+unsigned long stabilityTimer = 0;
+const float CHANGE_THRESHOLD = 5.0; // Ignore changes smaller than 5 grams
 
 void setup() {
   Serial.begin(9600);
@@ -64,16 +68,26 @@ void loop() {
 
       unsigned long now = millis();
 
-      // If it's time to send a BLE update
-      if (now - lastSent >= SEND_INTERVAL_MS) {
-        lastSent = now;
-
-        // Send the latest received weight over BLE
-        weightCharacteristic.writeValue(currentWeight);
-
-        Serial.print("Sent real weight via BLE: ");
+      // Logic to check if weight has changed and stayed stable
+      // Only send updates when weight DECREASES (drink detected), not when refilling
+      if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
+        // Weight decreased - this is a drink!
+        if (now - stabilityTimer > 30000) { // 30 second settle time
+          lastStableWeight = currentWeight;
+          weightCharacteristic.writeValue(currentWeight);
+          Serial.print("Drink detected! Weight decreased to: ");
+          Serial.print(currentWeight, 4);
+          Serial.println(" kg");
+        }
+      } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
+        // Weight increased - this is a refill, just update reference without sending to app
+        lastStableWeight = currentWeight;
+        Serial.print("Refill detected! Weight increased to: ");
         Serial.print(currentWeight, 4);
         Serial.println(" kg");
+      } else {
+        // Reset timer if weight is currently moving/unstable
+        stabilityTimer = now;
       }
     }
     Serial.println("Disconnected.");
