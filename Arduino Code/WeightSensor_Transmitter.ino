@@ -60,6 +60,7 @@ void loop() {
     }
   }
 
+  
   // receive command from serial terminal to tare the scale
   if (Serial.available() > 0) {
     char inByte = Serial.read();
