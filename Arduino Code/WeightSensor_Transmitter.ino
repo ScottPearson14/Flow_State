@@ -79,14 +79,20 @@ void loop() {
         if (inputBuffer == "t") {
           LoadCell.tareNoDelay();
         } else {
-          nanoSerial.println(inputBuffer);
+          float val = inputBuffer.toFloat();
+          if (val > 0) {
+            Serial.print("Sending to FlowNano: ");
+            Serial.print(val, 1);
+            Serial.println(" oz");
+            nanoSerial.println(inputBuffer);
+          } else {
+            Serial.println("Invalid input. Enter a number (oz) or 't' to tare.");
+          }
         }
         inputBuffer = "";
       }
     } else {
       inputBuffer += c;
-    }
-  }
     }
   }
 

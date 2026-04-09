@@ -21,6 +21,7 @@ float currentWeight = 0.0;
 float lastStableWeight = 0.0;
 unsigned long stabilityTimer = 0;
 const float CHANGE_THRESHOLD = 0.005; // Changed to 5 grams (0.005 kg)
+bool newWeightAvailable = false;
 
 void setup() {
   Serial.begin(9600);
@@ -68,31 +69,36 @@ void loop() {
       // Keep reading serial data while connected so we always have the freshest weight
       processSerialData();
 
-      unsigned long now = millis();
+      // When new weight arrives, always send to app over BLE
+      if (newWeightAvailable) {
+        newWeightAvailable = false;
 
-      // Initialize baseline only once per connection
-      if (!baselineInitialized && currentWeight > 0.0) {
-        lastStableWeight = currentWeight;
-        baselineInitialized = true;
-        stabilityTimer = now;
-        Serial.print("Initial weight baseline set to: ");
-        Serial.print(currentWeight, 4);
-        Serial.println(" kg");
-      } else if (baselineInitialized) {
-        // Only do drink/refill detection after baseline is set
-        if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
-          // Weight decreased - this is a drink!
+        // Always write to BLE so the app can track changes
+        weightCharacteristic.writeValue(currentWeight);
+
+        if (!baselineInitialized) {
           lastStableWeight = currentWeight;
-          weightCharacteristic.writeValue(currentWeight);
-          Serial.print("Drink detected! Weight decreased to: ");
-          Serial.print(currentWeight, 4);
-          Serial.println(" kg");
-        } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
-          // Weight increased - this is a refill, just update reference without sending to app
-          lastStableWeight = currentWeight;
-          Serial.print("Refill detected! Weight increased to: ");
-          Serial.print(currentWeight, 4);
-          Serial.println(" kg");
+          baselineInitialized = true;
+          float ozValue = currentWeight * 35.274;
+          Serial.print("Baseline set: ");
+          Serial.print(ozValue, 1);
+          Serial.println(" oz -> sent to app");
+        } else {
+          float deltaOz = (lastStableWeight - currentWeight) * 35.274;
+          if (deltaOz > 0.5) {
+            // Weight decreased - drink detected
+            Serial.print("Drink detected: -");
+            Serial.print(deltaOz, 1);
+            Serial.println(" oz -> sent to app");
+            lastStableWeight = currentWeight;
+          } else if (deltaOz < -0.5) {
+            // Weight increased - refill
+            float ozValue = currentWeight * 35.274;
+            Serial.print("Refill: ");
+            Serial.print(ozValue, 1);
+            Serial.println(" oz (new baseline) -> sent to app");
+            lastStableWeight = currentWeight;
+          }
         }
       }
     }
@@ -111,10 +117,16 @@ void processSerialData() {
     msg.trim();
 
     if (isValidNumber(msg)) {
-      // Convert the valid string into a float and save it globally
-      currentWeight = msg.toFloat();
-      Serial.print("Weight updated: ");
-      Serial.println(currentWeight, 4);
+      // Input is in ounces - convert to kg for BLE
+      float ozValue = msg.toFloat();
+      currentWeight = ozValue / 35.274;
+      newWeightAvailable = true;
+
+      Serial.print("Received: ");
+      Serial.print(ozValue, 1);
+      Serial.print(" oz (");
+      Serial.print(currentWeight, 4);
+      Serial.println(" kg)");
     } else {
       Serial.print("Invalid: ");
       Serial.println(msg);
