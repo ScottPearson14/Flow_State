@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 // Import the Bluetooth plugin
 import { BleClient } from '@capacitor-community/bluetooth-le'; 
 import { HydrationCircle } from './components/HydrationCircle';
@@ -63,7 +63,7 @@ const App: React.FC = () => {
   const [newFavContentValue, setNewFavContentValue] = useState('');
   
   // Track previous bottle weight to calculate drink amount (delta)
-  const [previousWeightKg, setPreviousWeightKg] = useState<number | null>(null);
+  const previousWeightKgRef = useRef<number | null>(null);
 
 // --- Bluetooth Connection Logic ---
 const connectToNano = async () => {
@@ -92,14 +92,14 @@ await BleClient.startNotifications(
     const currentWeightKg = value.getFloat32(0, true);
 
     // On first notification, just store the weight as baseline
-    if (previousWeightKg === null) {
-      setPreviousWeightKg(currentWeightKg);
+    if (previousWeightKgRef.current === null) {
+      previousWeightKgRef.current = currentWeightKg;
       console.log(`Initial bottle weight: ${currentWeightKg.toFixed(3)} kg`);
       return;
     }
 
     // Calculate the weight difference (positive = drink occurred)
-    const weightDeltaKg = previousWeightKg - currentWeightKg;
+    const weightDeltaKg = previousWeightKgRef.current - currentWeightKg;
     const amountOz = Math.round(weightDeltaKg * 35.274);
 
     if (amountOz > 0) {
@@ -120,7 +120,7 @@ await BleClient.startNotifications(
     }
 
     // Update previous weight for next comparison
-    setPreviousWeightKg(currentWeightKg);
+    previousWeightKgRef.current = currentWeightKg;
   }
 );
   } catch (error: any) {
