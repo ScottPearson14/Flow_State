@@ -93,10 +93,10 @@ void loop() {
         }
       }
       
-      // Send the test weight to FlowNano via SoftwareSerial
+      // Send the test weight to FlowNano via SoftwareSerial (ONLY the number, nothing else)
       nanoSerial.println(weightStr);
-      Serial.print("Test weight sent to FlowNano: ");
-      Serial.println(weightStr);
+      // Debug output only to USB Serial monitor
+      Serial.print("Sent to FlowNano: ");
       Serial.println(weightStr);
     }
   }

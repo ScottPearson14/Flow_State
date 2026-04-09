@@ -20,7 +20,7 @@ float currentWeight = 0.0;
 // Add these variables to your FlowNano.ino
 float lastStableWeight = 0.0;
 unsigned long stabilityTimer = 0;
-const float CHANGE_THRESHOLD = 5.0; // Ignore changes smaller than 5 grams
+const float CHANGE_THRESHOLD = 0.005; // Changed to 5 grams (0.005 kg)
 
 void setup() {
   Serial.begin(9600);
@@ -71,7 +71,14 @@ void loop() {
 
       // Logic to check if weight has changed and stayed stable
       // Only send updates when weight DECREASES (drink detected), not when refilling
-      if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
+      if (lastStableWeight == 0.0) {
+        // First weight received - just establish baseline
+        lastStableWeight = currentWeight;
+        stabilityTimer = now;
+        Serial.print("Initial weight baseline set to: ");
+        Serial.print(currentWeight, 4);
+        Serial.println(" kg");
+      } else if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
         // Weight decreased - this is a drink!
         if (now - stabilityTimer > 30000) { // 30 second settle time
           lastStableWeight = currentWeight;
@@ -83,6 +90,7 @@ void loop() {
       } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
         // Weight increased - this is a refill, just update reference without sending to app
         lastStableWeight = currentWeight;
+        stabilityTimer = now;
         Serial.print("Refill detected! Weight increased to: ");
         Serial.print(currentWeight, 4);
         Serial.println(" kg");
