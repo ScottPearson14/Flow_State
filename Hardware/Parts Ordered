@@ -1,0 +1,18 @@
+Specific Components Ordered:
+
+Used in final design:
+
+  Arduino Nano 33 BLE: 
+    https://store-usa.arduino.cc/products/nano-33-ble-sense-rev2
+  Bar Load Cells & HX711 Amp's: 
+    https://www.amazon.com/Wishiot-Precision-Miniature-Electronic-Portable/dp/B0C3QH7V8M/ref=rtpb_d_sccl_2/141-8362101-9918524?pd_rd_w=AvDaL&content-id=amzn1.sym.30b3778e-62f7-4bd7-834e-fd1439dc2eb8&pf_rd_p=30b3778e-62f7-4bd7-834e-fd1439dc2eb8&pf_rd_r=A81E2CP5C3E3P78EXEHH&pd_rd_wg=b5Ltc&pd_rd_r=1a62aee1-8446-4aff-95a2-a0a1dacff040&pd_rd_i=B0C3QH7V8M&th=1
+  Nano ATMega328p Boards:
+    https://www.amazon.com/LAFVIN-Board-ATmega328P-Micro-Controller-Arduino/dp/B07G99NNXL
+  9V Battery
+
+
+Used in prototypes:
+  Arduino UNO ATMEga328P:
+    https://www.newark.com/arduino/a000073/dev-board-atmega328-arduino-uno/dp/63W3545?CMP=KNC-GUSA-GEN-SHOPPING-PLA-ARDUINO-PUSH&gad_source=1&gad_campaignid=23568610931&gbraid=0AAAAAD5U_g2Kz2T_yLUjIqdKBhP7qkBNr&gclid=CjwKCAjwnN3OBhA8EiwAfpTYeonrryAchoTlI-jJtwoQw2nX8jnYIn0hqBhPbF51xYUcJpDFXWA8nhoCw5IQAvD_BwE
+  "Button" Half-Bridge Load Cells & HX711 Amps:
+    https://www.amazon.com/Half-Bridge-Weighting-Amplifier-Arduino-WIshioT/dp/B07B4DNJ2L/ref=sr_1_4?crid=2BC652UOI4OVE&dib=eyJ2IjoiMSJ9.guldgTOabWowWieqMRoN6aizXZO81L-rLC5XJdaCfJGcAQL9uuEGmfHa8DMBYxBP2gfTge7cARDi-gq2EqSmi_J-8L3_HLSXcukZZso9F5_icEjmK3-8yitRtzkRCL9evns9niiDp5l72fE2w5uFILZTAiaQVIAqowxSgiy1zYXzbAxn5rFuDIlBbI3_qq0ii7RzUUGAntyo1x25bPP31uiIZI50u_HjIALucMar4kNC-bOT1qVkR7I8K63GfQOmC8EBNuZQ1_SG3E-yYPVJ7mRTeA5qFSnIWKzR7l_HoQM.gIBidLWOLUcq2KnvHpq0h2DCvoCEKZkg-M2EFMRIoMw&dib_tag=se&keywords=load+cells&qid=1775764373&s=industrial&sprefix=load+cell%2Cindustrial%2C146&sr=1-4
