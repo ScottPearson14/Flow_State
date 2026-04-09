@@ -29,6 +29,9 @@ android/.gradle/
 *.njsproj
 *.sln
 *.sw?
+*.mp4
+*.mov
+*.avi
 
 # Xcode local user data (Crucial to avoid path errors)
 ios/App/App.xcworkspace/xcuserdata/
