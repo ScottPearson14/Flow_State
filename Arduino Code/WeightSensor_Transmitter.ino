@@ -19,6 +19,7 @@ const int HX711_sck = 5; //mcu > HX711 sck pin
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 unsigned long t = 0;
+String inputBuffer = "";
 
 void setup() {
   Serial.begin(9600); delay(10);
@@ -68,16 +69,24 @@ void loop() {
 */
   
   // receive command from serial terminal
-  if (Serial.available() > 0) {
-    // Read the entire line at once
-    String input = Serial.readStringUntil('\n');
-    input.trim();
+  while (Serial.available() > 0) {
+    char c = Serial.read();
     
-    if (input == "t") {
-      LoadCell.tareNoDelay(); //tare
-    } else if (input.length() > 0) {
-      // Send the weight number to FlowNano
-      nanoSerial.println(input);
+    // When newline received, process the buffered input
+    if (c == '\n' || c == '\r') {
+      if (inputBuffer.length() > 0) {
+        inputBuffer.trim();
+        if (inputBuffer == "t") {
+          LoadCell.tareNoDelay();
+        } else {
+          nanoSerial.println(inputBuffer);
+        }
+        inputBuffer = "";
+      }
+    } else {
+      inputBuffer += c;
+    }
+  }
     }
   }
 
