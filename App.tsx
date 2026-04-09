@@ -61,6 +61,9 @@ const App: React.FC = () => {
   const [newFavOz, setNewFavOz] = useState('');
   const [newFavContentType, setNewFavContentType] = useState<'none' | 'caffeine' | 'alcohol'>('none');
   const [newFavContentValue, setNewFavContentValue] = useState('');
+  
+  // Track previous bottle weight to calculate drink amount (delta)
+  const [previousWeightKg, setPreviousWeightKg] = useState<number | null>(null);
 
 // --- Bluetooth Connection Logic ---
 const connectToNano = async () => {
@@ -86,8 +89,18 @@ await BleClient.startNotifications(
   SERVICE_UUID,
   CHARACTERISTIC_UUID,
   (value) => {
-    const weightKg = value.getFloat32(0, true);
-    const amountOz = Math.round(weightKg * 35.274);
+    const currentWeightKg = value.getFloat32(0, true);
+
+    // On first notification, just store the weight as baseline
+    if (previousWeightKg === null) {
+      setPreviousWeightKg(currentWeightKg);
+      console.log(`Initial bottle weight: ${currentWeightKg.toFixed(3)} kg`);
+      return;
+    }
+
+    // Calculate the weight difference (positive = drink occurred)
+    const weightDeltaKg = previousWeightKg - currentWeightKg;
+    const amountOz = Math.round(weightDeltaKg * 35.274);
 
     if (amountOz > 0) {
       const newLog: HydrationLog = {
@@ -103,7 +116,11 @@ await BleClient.startNotifications(
       setLogs(prev => [newLog, ...prev]);
       setStats(prev => ({ ...prev, currentIntake: prev.currentIntake + amountOz }));
       setDevice(prev => ({ ...prev, lastSync: new Date() }));
+      console.log(`Drink detected: ${amountOz} oz`);
     }
+
+    // Update previous weight for next comparison
+    setPreviousWeightKg(currentWeightKg);
   }
 );
   } catch (error: any) {
