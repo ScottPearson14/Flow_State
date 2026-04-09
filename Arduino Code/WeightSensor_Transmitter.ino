@@ -76,7 +76,7 @@ void loop() {
     }
     // Check if user is typing a decimal number (weight value for testing)
     else if (isDigit(inByte) || inByte == '.') {
-      // Build the number string
+      // Build complete number string
       String weightStr = "";
       weightStr += inByte;
       
@@ -94,11 +94,12 @@ void loop() {
         }
       }
       
-      // Send the test weight to FlowNano via SoftwareSerial (ONLY the number)
-      Serial.print("DEBUG: Sending '");
-      Serial.print(weightStr);
-      Serial.println("' to nanoSerial");
+      // SEND ONLY THE WEIGHT TO nanoSerial - NO DEBUG
       nanoSerial.println(weightStr);
+      
+      // Debug output ONLY to USB Serial
+      Serial.print("Test input sent: ");
+      Serial.println(weightStr);
     }
   }
 

@@ -82,23 +82,17 @@ void loop() {
         // Only do drink/refill detection after baseline is set
         if ((lastStableWeight - currentWeight) > CHANGE_THRESHOLD) {
           // Weight decreased - this is a drink!
-          if (now - stabilityTimer > 30000) { // 30 second settle time
-            lastStableWeight = currentWeight;
-            weightCharacteristic.writeValue(currentWeight);
-            Serial.print("Drink detected! Weight decreased to: ");
-            Serial.print(currentWeight, 4);
-            Serial.println(" kg");
-          }
+          lastStableWeight = currentWeight;
+          weightCharacteristic.writeValue(currentWeight);
+          Serial.print("Drink detected! Weight decreased to: ");
+          Serial.print(currentWeight, 4);
+          Serial.println(" kg");
         } else if ((currentWeight - lastStableWeight) > CHANGE_THRESHOLD) {
           // Weight increased - this is a refill, just update reference without sending to app
           lastStableWeight = currentWeight;
-          stabilityTimer = now;
           Serial.print("Refill detected! Weight increased to: ");
           Serial.print(currentWeight, 4);
           Serial.println(" kg");
-        } else {
-          // Reset timer if weight is currently moving/unstable
-          stabilityTimer = now;
         }
       }
     }
@@ -116,16 +110,14 @@ void processSerialData() {
     String msg = Serial1.readStringUntil('\n');
     msg.trim();
 
-    Serial.print("Received from Serial1: ");
-    Serial.println(msg);
-
     if (isValidNumber(msg)) {
       // Convert the valid string into a float and save it globally
       currentWeight = msg.toFloat();
-      Serial.print("Updated currentWeight to: ");
+      Serial.print("Weight updated: ");
       Serial.println(currentWeight, 4);
     } else {
-      Serial.println("Ignored invalid data: " + msg);
+      Serial.print("Invalid: ");
+      Serial.println(msg);
     }
   }
 }
