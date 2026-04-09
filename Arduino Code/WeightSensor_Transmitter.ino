@@ -5,17 +5,15 @@
 */
 
 #include <HX711_ADC.h>
+#include <SoftwareSerial.h>
+
+// SoftwareSerial for communicating with FlowNano
+// RX pin 2 (not used), TX pin 3 → Connect pin 3 to Nano 33 IoT RX1
+SoftwareSerial nanoSerial(2, 3); // RX, TX
 
 //pins:
 const int HX711_dout = 4; //mcu > HX711 dout pin
 const int HX711_sck = 5; //mcu > HX711 sck pin
-
-#include <HX711_ADC.h>
-#include <SoftwareSerial.h>
-
-SoftwareSerial mySerial(2, 3); // RX, TX pins — adjust as needed
-
-// ... then replace every Serial1 with mySerial
 
 //HX711 constructor:
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
@@ -23,9 +21,8 @@ HX711_ADC LoadCell(HX711_dout, HX711_sck);
 unsigned long t = 0;
 
 void setup() {
-  
   Serial.begin(9600); delay(10);
-  mySerial.begin(9600); // Initialize Serial1 to send to FlowNano
+  nanoSerial.begin(9600); // Initialize SoftwareSerial to send to FlowNano
   Serial.println();
   Serial.println("Starting...");
 
@@ -96,8 +93,10 @@ void loop() {
         }
       }
       
-      // Send the test weight to FlowNano via Serial1
-      mySerial.println(weightStr);
+      // Send the test weight to FlowNano via SoftwareSerial
+      nanoSerial.println(weightStr);
+      Serial.print("Test weight sent to FlowNano: ");
+      Serial.println(weightStr);
       Serial.println(weightStr);
     }
   }

@@ -105,9 +105,14 @@ void processSerialData() {
     String msg = Serial1.readStringUntil('\n');
     msg.trim();
 
+    Serial.print("Received from Serial1: ");
+    Serial.println(msg);
+
     if (isValidNumber(msg)) {
       // Convert the valid string into a float and save it globally
-      currentWeight = msg.toFloat(); 
+      currentWeight = msg.toFloat();
+      Serial.print("Updated currentWeight to: ");
+      Serial.println(currentWeight, 4);
     } else {
       Serial.println("Ignored invalid data: " + msg);
     }
