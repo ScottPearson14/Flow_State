@@ -37,3 +37,6 @@ android/.gradle/
 ios/App/App.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/xcuserdata/
 ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/project.pbxproj
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+ios/App/App.xcodeproj/project.pbxproj
