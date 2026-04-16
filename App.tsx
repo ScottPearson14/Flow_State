@@ -1,7 +1,7 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 // Import the Bluetooth plugin
-import { BleClient } from '@capacitor-community/bluetooth-le'; 
+import { BleClient } from '@capacitor-community/bluetooth-le';
+import { LocalNotifications } from '@capacitor/local-notifications'; 
 import { HydrationCircle } from './components/HydrationCircle';
 import { TrendsChart } from './components/TrendsChart';
 import { RecentLog } from './components/RecentLog';
@@ -39,7 +39,6 @@ const App: React.FC = () => {
 
   const [device, setDevice] = useState<DeviceStatus>({ connected: false, batteryLevel: 84, lastSync: new Date() });
   const [activeTab, setActiveTab] = useState<'home' | 'stats' | 'profile'>('home');
-  const [debugDayOffset, setDebugDayOffset] = useState(0);
     // FIX: Added the missing isScanning state
   const [isScanning, setIsScanning] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
@@ -61,6 +60,14 @@ const App: React.FC = () => {
   const [newFavOz, setNewFavOz] = useState('');
   const [newFavContentType, setNewFavContentType] = useState<'none' | 'caffeine' | 'alcohol'>('none');
   const [newFavContentValue, setNewFavContentValue] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('flowstate_notifications_enabled');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [notificationInterval, setNotificationInterval] = useState<number>(() => {
+    const saved = localStorage.getItem('flowstate_notification_interval');
+    return saved ? JSON.parse(saved) : 30;
+  });
   
   // Track previous bottle weight to calculate drink amount (delta)
   const previousWeightKgRef = useRef<number | null>(null);
@@ -145,6 +152,62 @@ await BleClient.startNotifications(
     localStorage.setItem('flowstate_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  // Save notification settings and schedule/cancel notifications
+  useEffect(() => {
+    localStorage.setItem('flowstate_notifications_enabled', JSON.stringify(notificationsEnabled));
+    localStorage.setItem('flowstate_notification_interval', JSON.stringify(notificationInterval));
+
+    const scheduleNotifications = async () => {
+      try {
+        // Cancel all existing hydration reminders (IDs 1001-1064)
+        const pending = await LocalNotifications.getPending();
+        const existingIds = pending.notifications
+          .filter(n => n.id >= 1001 && n.id <= 1064)
+          .map(n => ({ id: n.id }));
+        if (existingIds.length > 0) {
+          await LocalNotifications.cancel({ notifications: existingIds });
+        }
+
+        if (!notificationsEnabled) return;
+
+        const permResult = await LocalNotifications.requestPermissions();
+        if (permResult.display !== 'granted') {
+          setNotificationsEnabled(false);
+          return;
+        }
+
+        const messages = [
+          '💧 Time to hydrate! Your body will thank you.',
+          '💧 Drink some water! Stay on track with your goal.',
+          '💧 Hydration check! Have you had a sip recently?',
+          '💧 Water break! Keep that streak going.',
+          '💧 Stay refreshed! Grab some water.',
+        ];
+
+        // Schedule individual notifications for the next 24h (iOS-reliable approach)
+        const now = new Date();
+        const intervalMs = notificationInterval * 60 * 1000;
+        const maxCount = Math.min(64, Math.floor((24 * 60 * 60 * 1000) / intervalMs));
+        const notifications = [];
+
+        for (let i = 1; i <= maxCount; i++) {
+          notifications.push({
+            id: 1000 + i,
+            title: 'Flow State',
+            body: messages[Math.floor(Math.random() * messages.length)],
+            schedule: { at: new Date(now.getTime() + intervalMs * i) },
+          });
+        }
+
+        await LocalNotifications.schedule({ notifications });
+      } catch (e) {
+        console.warn('Notifications not available:', e);
+      }
+    };
+
+    scheduleNotifications();
+  }, [notificationsEnabled, notificationInterval]);
+
   // Check for daily reset (reset currentIntake at midnight)
 // Real midnight reset
 useEffect(() => {
@@ -166,31 +229,14 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, []);
 
-// Debug day advance reset
-useEffect(() => {
-  if (debugDayOffset > 0) {
-    const offsetDay = new Date();
-    offsetDay.setDate(offsetDay.getDate() + debugDayOffset);
-    offsetDay.setHours(0, 0, 0, 0);
-    setLogs(prev => prev.filter(log => new Date(log.timestamp) >= offsetDay));
-    setStats(prev => ({ ...prev, currentIntake: 0 }));
-  }
-}, [debugDayOffset]);
-
   const logIntake = (amount: number, type: string, emoji?: string, caffeine = 0, alcohol = 0) => {
-    // Create timestamp with debug day offset applied
-    const offsetDate = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + debugDayOffset);
-      return d;
-    })();
 
     const newLog: HydrationLog = {
       id: Math.random().toString(36).substr(2, 9),
       amount,
       type,
       emoji,
-      timestamp: offsetDate,
+      timestamp: new Date(),
       caffeine,
       alcohol
     };
@@ -240,10 +286,8 @@ useEffect(() => {
     }
   };
 
-  // Get today's intake (considering debug day offset)
   const getTodayIntake = () => {
     const today = new Date();
-    today.setDate(today.getDate() + debugDayOffset);
     const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
     const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
@@ -252,10 +296,9 @@ useEffect(() => {
       .reduce((sum, log) => sum + log.amount, 0);
   };
 
-  // Get yesterday's intake (considering debug day offset)
   const getYesterdayIntake = () => {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() + debugDayOffset - 1);
+    yesterday.setDate(yesterday.getDate() - 1);
     const dayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
     const dayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
 
@@ -277,10 +320,8 @@ useEffect(() => {
     return { percentage: Math.abs(percentageChange), isIncrease: percentageChange >= 0 };
   };
 
-  // Get today's logs (considering debug day offset)
   const getTodayLogs = () => {
     const today = new Date();
-    today.setDate(today.getDate() + debugDayOffset);
     const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
     const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
@@ -291,7 +332,6 @@ useEffect(() => {
   const getWeeklyStats = () => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
-    today.setDate(today.getDate() + debugDayOffset);
     const weeklyData = [];
 
     for (let i = 6; i >= 0; i--) {
@@ -419,13 +459,6 @@ useEffect(() => {
             
 
             <button
-              onClick={() => setDebugDayOffset(prev => prev + 1)}
-              className="w-full px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-colors text-sm"
-            >
-              📅 Advance Day (Offset: {debugDayOffset})
-            </button>
-            
-            <button
               onClick={() => {
                 if (confirm('Clear all data? This cannot be undone.')) {
                   localStorage.clear();
@@ -436,7 +469,6 @@ useEffect(() => {
                     { id: '2', icon: '☕', label: 'Coffee', oz: 7, type: 'coffee', caffeine: 80 },
                     { id: '4', icon: '🥤', label: 'Soda', oz: 12, type: 'soda' }
                   ]);
-                  setDebugDayOffset(0);
                 }
               }}
               className="w-full px-4 py-2 bg-red-100 text-red-700 font-bold rounded-xl hover:bg-red-200 transition-colors text-sm"
@@ -489,6 +521,45 @@ useEffect(() => {
                         </div>
                       )}
                     </div>
+                  </div>
+                </section>
+                <section>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Reminders</h4>
+                  <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100">
+                    <div className="p-4 border-b border-slate-50 flex justify-between items-center">
+                      <span className="font-semibold text-slate-700">Hydration Reminders</span>
+                      <button
+                        onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                        className={`relative w-12 h-7 rounded-full transition-colors ${notificationsEnabled ? 'bg-blue-500' : 'bg-slate-300'}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${notificationsEnabled ? 'translate-x-5' : ''}`} />
+                      </button>
+                    </div>
+                    {notificationsEnabled && (
+                      <div className="p-4">
+                        <span className="text-sm text-slate-500 font-medium block mb-3">Remind me every</span>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { label: '30m', value: 30 },
+                            { label: '1h', value: 60 },
+                            { label: '2h', value: 120 },
+                            { label: '3h', value: 180 },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setNotificationInterval(opt.value)}
+                              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+                                notificationInterval === opt.value
+                                  ? 'bg-blue-500 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </section>
                 <section>
