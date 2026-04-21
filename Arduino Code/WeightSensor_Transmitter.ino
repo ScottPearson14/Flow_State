@@ -19,7 +19,6 @@ const int HX711_sck = 5; //mcu > HX711 sck pin
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 unsigned long t = 0;
-String inputBuffer = "";
 
 void setup() {
   Serial.begin(9600); delay(10);
@@ -46,7 +45,7 @@ void setup() {
 }
 
 void loop() {
-  /*
+  
   static boolean newDataReady = 0;
   
   // Set to 2000 to print every 2 seconds
@@ -66,34 +65,40 @@ void loop() {
       t = millis();
     }
   }
-*/
+
   
-  // receive command from serial terminal
-  while (Serial.available() > 0) {
-    char c = Serial.read();
-    
-    // When newline received, process the buffered input
-    if (c == '\n' || c == '\r') {
-      if (inputBuffer.length() > 0) {
-        inputBuffer.trim();
-        if (inputBuffer == "t") {
-          LoadCell.tareNoDelay();
+  // receive command from serial terminal to tare the scale
+  if (Serial.available() > 0) {
+    char inByte = Serial.read();
+    if (inByte == 't') {
+      LoadCell.tareNoDelay(); //tare
+      Serial.println("Tare initiated...");
+    }
+    // Check if user is typing a decimal number (weight value for testing)
+    else if (isDigit(inByte) || inByte == '.') {
+      // Build the number string
+      String weightStr = "";
+      weightStr += inByte;
+      
+      // Read remaining digits/decimal points until newline or non-numeric
+      while (Serial.available() > 0) {
+        char nextChar = Serial.peek();
+        if (isDigit(nextChar) || nextChar == '.') {
+          weightStr += Serial.read();
+        } else if (nextChar == '\n' || nextChar == '\r') {
+          Serial.read(); // consume the newline
+          break;
         } else {
-          float val = inputBuffer.toFloat();
-          if (val > 0) {
-            Serial.print("Sending to FlowNano: ");
-            Serial.print(val, 1);
-            Serial.println(" oz");
-            // Tagged format so FlowNano can filter from debug messages
-            Serial.println("W:" + inputBuffer);
-          } else {
-            Serial.println("Invalid input. Enter a number (oz) or 't' to tare.");
-          }
+          Serial.read(); // consume unwanted character
+          break;
         }
-        inputBuffer = "";
       }
-    } else {
-      inputBuffer += c;
+      
+      // Send the test weight to FlowNano via SoftwareSerial (ONLY the number, nothing else)
+      nanoSerial.println(weightStr);
+      // Debug output only to USB Serial monitor
+      Serial.print("Sent to FlowNano: ");
+      Serial.println(weightStr);
     }
   }
 
