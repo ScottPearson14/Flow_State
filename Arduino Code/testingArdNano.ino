@@ -6,11 +6,9 @@
 */
 
 #include <HX711_ADC.h>
-#include <SoftwareSerial.h>
 
-// SoftwareSerial for communicating with FlowNano
-// RX pin 2 (not used), TX pin 3 → Connect pin 3 to Nano 33 IoT RX1
-SoftwareSerial nanoSerial(2, 3); // RX, TX
+// Data is sent to FlowNano via hardware Serial (D1/TX → Nano 33 BLE RX0)
+// FlowNano filters by W: prefix and ignores all other debug output
 
 //pins:
 const int HX711_dout = 4; //mcu > HX711 dout pin
@@ -24,7 +22,6 @@ String inputBuffer = "";
 
 void setup() {
   Serial.begin(9600); delay(10);
-  nanoSerial.begin(9600); // Initialize SoftwareSerial to send to FlowNano
   Serial.println();
   Serial.println("Starting...");
 
@@ -67,9 +64,9 @@ void loop() {
       Serial.print(weightKg, 4);
       Serial.println(" kg)");
       
-      // Send to FlowNano with W: prefix so it can filter debug messages
-      nanoSerial.print("W:");
-      nanoSerial.println(weightOz, 1);
+      // Send to FlowNano via D1/TX with W: prefix so it can filter debug messages
+      Serial.print("W:");
+      Serial.println(weightOz, 1);
       
       newDataReady = 0;
       t = millis();
