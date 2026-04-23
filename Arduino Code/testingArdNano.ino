@@ -1,77 +1,78 @@
+/*
+   -------------------------------------------------------------------------------------
+   HX711_ADC Streamlined for Specific Project
+   -------------------------------------------------------------------------------------
+*/
 #include <HX711_ADC.h>
 #include <SoftwareSerial.h>
-
-SoftwareSerial nanoSerial(2, 3); // RX, TX — pin 3 → Nano 33 BLE RX1
-
-const int HX711_dout = 4;
-const int HX711_sck = 5;
+// SoftwareSerial for communicating with FlowNano
+// RX pin 2 (not used), TX pin 3 → Connect pin 3 to Nano 33 IoT RX1
+SoftwareSerial nanoSerial(2, 3); // RX, TX
+//pins:
+const int HX711_dout = 4; //mcu > HX711 dout pin
+const int HX711_sck = 5; //mcu > HX711 sck pin
+//HX711 constructor:
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
-
 unsigned long t = 0;
 String inputBuffer = "";
-
 void setup() {
   Serial.begin(9600); delay(10);
-  nanoSerial.begin(9600);
+  nanoSerial.begin(9600); // Initialize SoftwareSerial to send to FlowNano
+  Serial.println();
   Serial.println("Starting...");
   LoadCell.begin();
-
-  unsigned long stabilizingtime = 2000;
-  boolean _tare = true;
+  // precision right after power-up can be improved by adding a few seconds of stabilizing time
+  unsigned long stabilizingtime = 2000; 
+  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
   LoadCell.start(stabilizingtime, _tare);
-
   if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
     Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
-  } else {
-    LoadCell.setCalFactor(395.0);
+  }
+  else {
+    // Hard-coded calibration factor
+    LoadCell.setCalFactor(395.0); 
     Serial.println("Startup is complete");
   }
 }
-
 void loop() {
+  /*
   static boolean newDataReady = 0;
-  const int sendInterval = 2000;
-
+  // Set to 2000 to print every 2 seconds
+  const int serialPrintInterval = 2000; 
+  // check for new data/start next conversion:
   if (LoadCell.update()) newDataReady = true;
-
+  // get smoothed value from the dataset:
   if (newDataReady) {
-    if (millis() > t + sendInterval) {
-      float weightKg = LoadCell.getData();
-      float weightOz = weightKg * 35.274;
-
-      Serial.print("Load Cell: ");
-      Serial.print(weightOz, 1);
-      Serial.println(" oz");
-
-      // Send real sensor data to BLE Nano
-      nanoSerial.print("W:");
-      nanoSerial.println(weightOz, 1);
-
+    if (millis() > t + serialPrintInterval) {
+      float weight = LoadCell.getData();
+      Serial.println(weight);
+      // Optionally send real sensor data to FlowNano
+      // Serial1.println(weight);
       newDataReady = 0;
       t = millis();
     }
   }
-
-  // Manual override: type a number (oz) in serial monitor to test, or 't' to tare
+*/
+  // receive command from serial terminal
   while (Serial.available() > 0) {
     char c = Serial.read();
+    // When newline received, process the buffered input
     if (c == '\n' || c == '\r') {
       if (inputBuffer.length() > 0) {
         inputBuffer.trim();
         if (inputBuffer == "t") {
           LoadCell.tareNoDelay();
-          Serial.println("Tare initiated...");
         } else {
           float val = inputBuffer.toFloat();
           if (val > 0) {
-            Serial.print("Manual send: ");
+            Serial.print("Sending to FlowNano: ");
             Serial.print(val, 1);
             Serial.println(" oz");
-            nanoSerial.print("W:");      // ← must go to nanoSerial, not Serial
-            nanoSerial.println(val, 1);
+            // Tagged format so FlowNano can filter from debug messages
+            Serial.println("W:" + inputBuffer);
           } else {
-            Serial.println("Invalid. Enter oz value or 't' to tare.");
+            Serial.println("Invalid input. Enter a number (oz) or 't' to tare.");
           }
         }
         inputBuffer = "";
@@ -80,7 +81,7 @@ void loop() {
       inputBuffer += c;
     }
   }
-
+  // check if last tare operation is complete
   if (LoadCell.getTareStatus() == true) {
     Serial.println("Tare complete");
   }
