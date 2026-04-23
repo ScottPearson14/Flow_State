@@ -1,20 +1,10 @@
-/*
-   -------------------------------------------------------------------------------------
-   HX711_ADC Streamlined for Specific Project
-   Code for ardunio nano atmega 328p to read from weight sensor and send to nano 33ble
-   -------------------------------------------------------------------------------------
-*/
-
 #include <HX711_ADC.h>
+#include <SoftwareSerial.h>
 
-// Data is sent to FlowNano via hardware Serial (D1/TX → Nano 33 BLE RX0)
-// FlowNano filters by W: prefix and ignores all other debug output
+SoftwareSerial nanoSerial(2, 3); // RX, TX — pin 3 → Nano 33 BLE RX1
 
-//pins:
-const int HX711_dout = 4; //mcu > HX711 dout pin
-const int HX711_sck = 5; //mcu > HX711 sck pin
-
-//HX711 constructor:
+const int HX711_dout = 4;
+const int HX711_sck = 5;
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 unsigned long t = 0;
@@ -22,62 +12,50 @@ String inputBuffer = "";
 
 void setup() {
   Serial.begin(9600); delay(10);
-  Serial.println();
+  nanoSerial.begin(9600);
   Serial.println("Starting...");
-
   LoadCell.begin();
-  
-  // precision right after power-up can be improved by adding a few seconds of stabilizing time
-  unsigned long stabilizingtime = 2000; 
-  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
+
+  unsigned long stabilizingtime = 2000;
+  boolean _tare = true;
   LoadCell.start(stabilizingtime, _tare);
-  
+
   if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
     Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
-  }
-  else {
-    // Hard-coded calibration factor
-    LoadCell.setCalFactor(395.0); 
+  } else {
+    LoadCell.setCalFactor(395.0);
     Serial.println("Startup is complete");
   }
 }
 
 void loop() {
   static boolean newDataReady = 0;
-  
-  // Set to 2000 to send every 2 seconds
-  const int sendInterval = 2000; 
+  const int sendInterval = 2000;
 
-  // check for new data/start next conversion (non-blocking):
   if (LoadCell.update()) newDataReady = true;
 
-  // get smoothed value from the dataset and send to FlowNano:
   if (newDataReady) {
     if (millis() > t + sendInterval) {
       float weightKg = LoadCell.getData();
-      float weightOz = weightKg * 35.274; // Convert kg to oz for consistency
-      
+      float weightOz = weightKg * 35.274;
+
       Serial.print("Load Cell: ");
       Serial.print(weightOz, 1);
-      Serial.print(" oz (");
-      Serial.print(weightKg, 4);
-      Serial.println(" kg)");
-      
-      // Send to FlowNano via D1/TX with W: prefix so it can filter debug messages
-      Serial.print("W:");
-      Serial.println(weightOz, 1);
-      
+      Serial.println(" oz");
+
+      // Send real sensor data to BLE Nano
+      nanoSerial.print("W:");
+      nanoSerial.println(weightOz, 1);
+
       newDataReady = 0;
       t = millis();
     }
   }
-  
-  // Optional: receive calibration commands from serial terminal (for debugging)
+
+  // Manual override: type a number (oz) in serial monitor to test, or 't' to tare
   while (Serial.available() > 0) {
     char c = Serial.read();
-    
-    // When newline received, process the buffered input
     if (c == '\n' || c == '\r') {
       if (inputBuffer.length() > 0) {
         inputBuffer.trim();
@@ -85,7 +63,16 @@ void loop() {
           LoadCell.tareNoDelay();
           Serial.println("Tare initiated...");
         } else {
-          Serial.println("Commands: 't' to tare the scale");
+          float val = inputBuffer.toFloat();
+          if (val > 0) {
+            Serial.print("Manual send: ");
+            Serial.print(val, 1);
+            Serial.println(" oz");
+            nanoSerial.print("W:");      // ← must go to nanoSerial, not Serial
+            nanoSerial.println(val, 1);
+          } else {
+            Serial.println("Invalid. Enter oz value or 't' to tare.");
+          }
         }
         inputBuffer = "";
       }
@@ -94,7 +81,6 @@ void loop() {
     }
   }
 
-  // check if last tare operation is complete
   if (LoadCell.getTareStatus() == true) {
     Serial.println("Tare complete");
   }
