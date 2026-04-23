@@ -58,9 +58,10 @@ void loop() {
   if (newDataReady) {
     if (millis() > t + serialPrintInterval) {
       float weight = LoadCell.getData();
-      Serial.println(weight);
-      // Optionally send real sensor data to FlowNano
-      // Serial1.println(weight);
+      Serial.print("W:");
+      Serial.println(weight * 0.035274, 1); // Prints to ATmega USB
+      //nanoSerial.print("W:");
+      //nanoSerial.println(weight * 35.274, 1); // Sends to FlowNano BLE
       newDataReady = 0;
       t = millis();
     }
